@@ -276,7 +276,7 @@ Selectivity.OptionListeners.unshift(function(selectivity, options) {
                         }
 
                         var results = resultsCb(data, offset);
-                        results.results = results.results.map(processItem);
+                        results.results = $.map(results.results, processItem);
                         queryOptions.callback(results);
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
@@ -4584,7 +4584,7 @@ var $ = window.jQuery || window.Zepto;
 
 var Selectivity = _dereq_(7);
 
-function replaceSelectElement($el, options) {
+function createSelectivityNextToSelectElement($el, options) {
 
     var data = (options.multiple ? [] : null);
 
@@ -4634,35 +4634,25 @@ function replaceSelectElement($el, options) {
         'style': $el.attr('style'),
         'data-name': $el.attr('name')
     });
-    $el.replaceWith($div);
+    $div.insertAfter($el);
+    $el.hide();
     return $div;
 }
 
 function bindTraditionalSelectEvents(selectivity) {
-
     var $el = selectivity.$el;
-
-    $el.on('selectivity-init', function(event, mode) {
-        $el.append(selectivity.template('selectCompliance', {
-            mode: mode,
-            name: $el.attr('data-name')
-        })).removeAttr('data-name');
-    }).on('selectivity-init change', function() {
+    $el.on('selectivity-selected', function(event) {
         var data = selectivity._data;
-        var $select = $el.find('select');
-
         if (data instanceof Array) {
-            $select.empty();
+            var ids = [event.item.id];
 
             data.forEach(function(item) {
-                $select.append(selectivity.template('selectOptionCompliance', item));
+                ids.push(item.id);
             });
+
+            $el.prev('select').val(ids).change();
         } else {
-            if (data) {
-                $select.html(selectivity.template('selectOptionCompliance', data));
-            } else {
-                $select.empty();
-            }
+            $el.prev('select').val(event.item.id).change();
         }
     });
 }
@@ -4681,7 +4671,7 @@ Selectivity.OptionListeners.push(function(selectivity, options) {
             }, 1);
         }
 
-        selectivity.$el = replaceSelectElement($el, options);
+        selectivity.$el = createSelectivityNextToSelectElement($el, options);
         selectivity.$el[0].selectivity = selectivity;
 
         bindTraditionalSelectEvents(selectivity);
